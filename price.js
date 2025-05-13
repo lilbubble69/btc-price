@@ -1,13 +1,18 @@
 const priceElement = document.getElementById('price');
 let lastPrice = null;
+let lastUpdateTime = 0;
 
 const socket = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@trade');
 
 socket.onmessage = function (event) {
-  const message = JSON.parse(event.data);
-  const rawPrice = parseFloat(message.p); // raw number from Binance
+  const now = Date.now();
 
-  // Format price with commas and two decimal places
+  // Only update every 2000ms (2 seconds)
+  if (now - lastUpdateTime < 2000) return;
+
+  const message = JSON.parse(event.data);
+  const rawPrice = parseFloat(message.p);
+
   const formattedPrice = rawPrice.toLocaleString('en-US', {
     style: 'currency',
     currency: 'USD',
@@ -17,7 +22,7 @@ socket.onmessage = function (event) {
 
   priceElement.textContent = formattedPrice;
 
-  // Change color based on price trend
+  // Color based on price trend
   if (lastPrice !== null) {
     if (rawPrice > lastPrice) {
       priceElement.style.color = 'limegreen';
@@ -29,6 +34,7 @@ socket.onmessage = function (event) {
   }
 
   lastPrice = rawPrice;
+  lastUpdateTime = now;
 };
 
 socket.onerror = function (error) {
